@@ -1,0 +1,12 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\boot",
+    "\\boot\\include",
+    "\\fs",
+    "\\kernel",
+    "\\lib"
+  ],
+  "SelectedNode": "\\kernel\\console.c",
+  "PreviewInSolutionExplorer": false
+}
