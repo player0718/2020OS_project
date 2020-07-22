@@ -22,7 +22,7 @@ EXTERN proc_node *h_ready[],*h_waiting;
 EXTERN proc_node proc_list[];
 EXTERN int index_free;
 EXTERN int k;
-
+//比对两个字符串
 int strcmp(char *str1,char *str2)
 {
     int i;
@@ -34,7 +34,16 @@ int strcmp(char *str1,char *str2)
     }
     return 0;
 }
-
+//将大写字母变为小写
+void strlwr(char *str)
+{
+	int i;
+	for (i=0; i<strlen(str); i++)
+	{
+		if ('A'<=str[i] && str[i]<='Z')
+			str[i]=str[i]+'a'-'A';
+	}
+}
 /*======================================================================*
 							kernel_main
  *======================================================================*/
@@ -547,7 +556,7 @@ char *status_str(int status)
     }
     return NULL;
 }
-
+//处理用户指令
 void dispatch_command(char *command)
 {
     strlwr(command);
@@ -567,7 +576,7 @@ void dispatch_command(char *command)
     }
     else
     {
-        printf("bad command\n");
+        printf("Wrong command!\n");
     }
 }
 
@@ -615,15 +624,17 @@ void getString(char* str)
     int i;
     char temp;
     for(i=0;i<calculatorTty->len && calculatorTty->str[i]==' ';i++)
-    while(i<length &&i<calculatorTty->len)
     {
-        temp=calculatorTty->str[i];
-        if(temp == '\n')break;
-        if(temp != ' ' && temp != '\t')
-            str[i++]=temp;
-        else continue;
+	    while(i<length &&i<calculatorTty->len)
+	    {
+		    temp=calculatorTty->str[i];
+		    if(temp == '\n')break;
+		    if(temp != ' ' && temp != '\t')
+			    str[i++]=temp;
+		    else continue;
+	    }
+	    str[i]='\0';
     }
-    str[i]='\0';
 }
 
 void error()
