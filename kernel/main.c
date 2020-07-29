@@ -18,32 +18,8 @@
 #include "minesweeper.h"
 #include "snake.h"
 
-EXTERN proc_node *h_ready[],*h_waiting;
-EXTERN proc_node proc_list[];
-EXTERN int index_free;
-EXTERN int k;
-//比对两个字符串
-int strcmp(char *str1,char *str2)
-{
-    int i;
-    for(i=0;i<strlen(str1);i++)
-    {
-        if(i==strlen(str2)) return 1;
-        if(str1[i]>str2[i]) return 1;
-        else if(str1[i]<str2[i]) return -1;
-    }
-    return 0;
-}
-//将大写字母变为小写
-void strlwr(char *str)
-{
-	int i;
-	for (i=0; i<strlen(str); i++)
-	{
-		if ('A'<=str[i] && str[i]<='Z')
-			str[i]=str[i]+'a'-'A';
-	}
-}
+
+
 /*======================================================================*
 							kernel_main
  *======================================================================*/
@@ -165,8 +141,8 @@ PUBLIC void addTwoString(char *to_str, char *from_str1, char *from_str2) {
 	to_str[j] = 0;
 }
 
-char users[1][128] = { "root"};
-char passwords[1][128] = { "root"};
+char users[2][128] = { "root","shen"};
+char passwords[2][128] = { "root","yujiao"};
 
 //包含进程的操作 文件 启动游戏
 void shell(char *tty_name) {
@@ -230,7 +206,7 @@ void shell(char *tty_name) {
 		char old_cmd[512];
 		strcpy(old_cmd, cmd);
 		int cnt = 0, flag = 0;
-		for (cnt = 0; cnt < 1; cnt++) {
+		for (cnt = 0; cnt < 2; cnt++) {
 			if (strcmp(old_cmd, users[cnt]) == 0) {
 				printf("password: ");
 				clearArr(rdbuf, 512);
@@ -328,7 +304,25 @@ void shell(char *tty_name) {
 		else if (strcmp(cmd, "ls") == 0) {
 			ls(current_dirr);
 		}
-
+		//文件系统操作 tian 307-325
+		else if (strcmp(cmd, "nf") == 0) {
+			CreateFile(current_dirr, arg1);
+		}
+		else if (strcmp(cmd, "rm") == 0) {
+			DeleteFile(current_dirr,arg1);
+		}
+		else if (strcmp(cmd, "pfc") == 0) {
+			ReadFile(current_dirr, arg1);
+		}
+		else if (strcmp(cmd, "wf") == 0) {
+			WriteFile(current_dirr, arg1);
+		}
+		else if (strcmp(cmd, "mkdir")==0){
+			CreateDir(current_dirr,arg1);
+		}
+		else if (strcmp(cmd, "cd") == 0) {
+			GoDir(current_dirr, arg1);
+		}
 		else if (strcmp(rdbuf, "pause 4") == 0) {
 			memcpy(proc_table[4].run_state, paused_string, 8);
 			ProcessManage();
@@ -481,8 +475,9 @@ void clear() {
 
 
 
-
-
+/*======================================================================*
+						menu 478-483（新增）
+ *======================================================================*/
 void menu() {
 	printf("=============================================================================\n");
 	printf("                             Select Your Operation                           \n");
@@ -492,8 +487,12 @@ void menu() {
 	printf("    minesweeper                   : start the minesweeper game               \n");
 	printf("    snake                         : start the snake game                     \n");
 	printf("    process                       : display all process-info and manage      \n");
-	printf("    shutdown                      : close the computer                       \n");
-	printf("    calculator                    : start a calculator application           \n");
+	printf("    nf                            : create a new file                        \n");
+	printf("    rm                            : delete a file                            \n");
+	printf("    pfc                           : print file content                       \n");
+	printf("    wf                            : write a file                             \n");
+	printf("    mkdir                         : create a new directory                   \n");
+	printf("    cd                            : change current directory                 \n");
 	printf("=============================================================================\n");
 }
 
@@ -513,6 +512,166 @@ void ProcessManage()
 	printf("=                 kill   [pid]  kill the process                            =\n");
 	printf("=                 up     [pid]  improve the process priority                =\n");
 	printf("=============================================================================\n");
+}
+/*======================================================================*
+					文件系统操作   516-675
+ *======================================================================*/
+void CreateFile(char* path, char* file)//新建文件
+{
+	char absoPath[512];
+	addTwoString(absoPath, path, file);
+
+	int fd = open(absoPath, O_CREAT | O_RDWR);
+
+	if (fd == -1)
+	{
+		printf("Failed to create a new file with name %s\n", file);
+		return;
+	}
+
+	char buf[1] = { 0 };
+	write(fd, buf, 1);
+	printf("File created: %s (fd %d)\n", file, fd);
+	close(fd);
+}
+
+void DeleteFile(char* path, char* file)//删除文件
+{
+	char absoPath[512];
+	addTwoString(absoPath, path, file);
+	int m = unlink(absoPath);
+	if (m == 0)
+		printf("%s deleted!\n", file);
+	else
+		printf("Failed to delete %s!\n", file);
+}
+
+void ReadFile(char* path, char* file)//读文件
+{
+	char absoPath[512];
+	addTwoString(absoPath, path, file);
+	int fd = open(absoPath, O_RDWR);
+	if (fd == -1)
+	{
+		printf("Failed to open %s!\n", file);
+		return;
+	}
+
+	char buf[4096];
+	int n = read(fd, buf, 4096);
+	if (n == -1)  // 读取文件内容失败
+	{
+		printf("An error has occured in reading the file!\n");
+		close(fd);
+		return;
+	}
+
+	printf("%s\n", buf);
+	close(fd);
+}
+
+void WriteFile(char* path, char* file)//写文件
+{
+	char absoPath[512];
+	addTwoString(absoPath, path, file);
+	int fd = open(absoPath, O_RDWR);
+	if (fd == -1)
+	{
+		printf("Failed to open %s!\n", file);
+		return;
+	}
+
+	char tty_name[] = "/dev_tty0";
+	int fd_stdin = open(tty_name, O_RDWR);
+	if (fd_stdin == -1)
+	{
+		printf("An error has occured in writing the file!\n");
+		return;
+	}
+	char writeBuf[4096];  // 写缓冲区
+	int endPos = read(fd_stdin, writeBuf, 4096);
+	writeBuf[endPos] = 0;
+	write(fd, writeBuf, endPos + 1);  // 结束符也应写入
+	close(fd);
+}
+
+void CreateDir(char* path, char* file)//新建目录
+{
+	char absoPath[512];
+	addTwoString(absoPath, path, file);
+	int fd = open(absoPath, O_RDWR);
+
+	if (fd != -1)
+	{
+		printf("Failed to create a new directory with name %s\n", file);
+		return;
+	}
+	mkdir(absoPath);
+}
+
+void GoDir(char* path, char* file)//切换当前目录
+{
+	int flag = 0;  // 判断是进入下一级目录还是返回上一级目录
+	char newPath[512] = { 0 };
+	if (file[0] == '.' && file[1] == '.')  // cd ..返回上一级目录
+	{
+		flag = 1;
+		int pos_path = 0;
+		int pos_new = 0;
+		int i = 0;
+		char temp[128] = { 0 };  // 用于存放某一级目录的名称
+		while (path[pos_path] != 0)
+		{
+			if (path[pos_path] == '/')
+			{
+				pos_path++;
+				if (path[pos_path] == 0)  // 已到达结尾
+					break;
+				else
+				{
+					temp[i] = '/';
+					temp[i + 1] = 0;
+					i = 0;
+					while (temp[i] != 0)
+					{
+						newPath[pos_new] = temp[i];
+						temp[i] = 0;  
+						pos_new++;
+						i++;
+					}
+					i = 0;
+				}
+			}
+			else
+			{
+				temp[i] = path[pos_path];
+				i++;
+				pos_path++;
+			}
+		}
+	}
+	char absoPath[512];
+	char temp[512];
+	int pos = 0;
+	while (file[pos] != 0)
+	{
+		temp[pos] = file[pos];
+		pos++;
+	}
+	temp[pos] = '/';
+	temp[pos + 1] = 0;
+	if (flag == 1)  // 返回上一级目录
+	{
+		temp[0] = 0;
+		addTwoString(absoPath, newPath, temp);
+	}
+	else  // 进入下一级目录
+		addTwoString(absoPath, path, temp);
+	int fd = open(absoPath, O_RDWR);
+	if (fd == -1)
+		printf("%s is not a directory!\n", absoPath);
+	else
+		memcpy(path, absoPath, 512);
 }
 
 
@@ -536,313 +695,3 @@ void animation() {
 	milli_delay(20000);
 	clear();
 }
-/*======================================================================*
-				Terminal
-*=======================================================================*/
-
-char *status_str(int status)
-{
-    if(status == RUNNING)
-    {
-        return "RUNNING";
-    }
-    else if(status == READY)
-    {
-        return "READY";
-    }
-    else if(status == WANNING)
-    {
-        return "WANING";
-    }
-    return NULL;
-}
-//处理用户指令
-void dispatch_command(char *command)
-{
-    strlwr(command);
-    if(strcmp(command,"clear")==0)
-    {
-        clearScreen();
-        sys_clear(tty_table);
-    }
-    else if(strcmp(command,"calculator"==0))
-    {
-        calculator();
-    }
-    else if(strcmp(command,"shutdown")==0)
-    {
-        showdown();
-        while(1);
-    }
-    else
-    {
-        printf("Wrong command!\n");
-    }
-}
-
-PUBLIC void Terminal()
-{
-    tty_table->b_scanf=FALSE;
-    while(1){
-        printf("$ ");
-        scanf_on(tty_table);
-        while(tty_table->b_scanf);
-        dispatch_command(tty_table->str);
-    }
-}
-/*======================================================================*
-				calculator
-*=======================================================================*/
-TTY *calculatorTty=tty_table+2;
-#define length 100
-
-char token;
-int pos;
-char str[length];
-double exp();
-double term();
-double factor();
-
-void match(char expectedToken);
-void error();
-
-int isdigit(char ch)
-{
-    if(ch>='0' $$ ch<='9')
-        return 1;
-    return 0;
-}
-
-char getChar(char* str)
-{
-    if(pos>=length)return '\0';
-    return str[pos++];
-}
-
-void getString(char* str)
-{
-    int i;
-    char temp;
-    for(i=0;i<calculatorTty->len && calculatorTty->str[i]==' ';i++)
-    {
-	    while(i<length &&i<calculatorTty->len)
-	    {
-		    temp=calculatorTty->str[i];
-		    if(temp == '\n')break;
-		    if(temp != ' ' && temp != '\t')
-			    str[i++]=temp;
-		    else continue;
-	    }
-	    str[i]='\0';
-    }
-}
-
-void error()
-{
-    printf("Error!\n");
-}
-
-double readNum(char bgn)
-{
-    double num = bgn - '0';
-    int deci_num = 0;
-    bgn = getChar(str);
-    if(!isdigit(bgn)&&bgn!='.')
-    {
-        pos--;
-        return num;
-    }
-    while(isdigit(bgn) || bgn=='.')
-    {
-        if(bgn == '.')
-            deci_num++;
-        else
-            num = num*10 +(double)(bbgn - '0');
-        bgn = getChar(str);
-    }
-    while(deci_num)
-    {
-        num /= 10;
-        deci_num--;
-    }
-    pos--;
-    return num;
-}
-
-void match(char expectedToken)
-{
-    if(expectedToken == token)
-        token = getChar(str);
-    else
-        error();
-}
-
-double exp()
-{
-    double temp = term();
-    while(token == '+' || token == '-')
-        switch(token)
-        {
-            case '+': match('+');
-                      temp +=term();
-                      break;
-            case '-': match('-');
-                      temp-=term();
-                      break;
-        }
-    return temp;
-}
-
-double factor()
-{
-    double temp;
-    if(token == '(')
-    {
-        match('(');
-        temp = exp();
-        match(')');
-    }
-    else if(isdigit(token))
-    {
-        temp = readNum(token);
-        token = getChar(str);
-    }
-    else
-        error();
-    return temp;
-}
-
-double term()
-{
-    double temp = factor();
-    while(token =='*' || token == '/')
-        switch(token)
-        {
-            case '*': match('*');
-                      temp *= factor();
-                      break;
-            case '/': match('/');
-                      temp /=factor();
-                      break;
-        }
-    return temp;
-}
-
-void printNum(double d)
-{
-    if(d<0)
-    {
-        d=-d;
-        printf("-");
-    }
-    int m = d;
-    int digit = m;
-    d-=m;
-    int precision = 3;
-    char num[precision+1];
-    num[precision] = '\0';
-    int i = 0;
-    while(precision--)
-    {
-        d*=10;
-        m = d;
-        num[i++] = m+'0';
-        d-=m;
-    }
-    int flag = 0;
-    if(d*10>5)
-        flag = 1;
-    while(--i && flag)
-    {
-        if(num[i]=='9') 
-            num[i] = '0';
-        else
-        {
-            num[i]++;
-            flag = 0;
-        }
-    }
-    printf("%d.%s\n",digit,num);
-}
-
-void calculator()
-{
-    printf("This is a calculator application.")
-    while(1)
-    {
-        delectTty(caculatorTty);
-        printf("Please enter an equation: \n");
-        openStartScanf(caculatorTty);
-        while(calculatorTty->startScanf);
-        getString(str);
-        pos=0;
-        token = getChar(str);
-        if(token == 'q')
-            break;
-        double result = exp();
-        if(token == '\0')
-        {
-            printNum(result);
-        }
-        else
-            error();
-    }
-    printf("An equation has been done.")
-}
-
-/*========================================================================*
-				shutdown
-*========================================================================*/
-void clearScreen()
-{
-    int i;
-    disp_pos=0;
-    for(i=0;i<80*25;i++)
-    {
-        disp_str(" ");
-    }
-    disp_pos=0;
-}
-
-void shutdown()
-{
-    clearScreen();
-    disp_str("\n\n\n\n\n");
-    disp_color_str("            BBBBBB\n");
-    disp_color_str("            B     B\n");
-    disp_color_str("            B      B\n");
-    disp_color_str("            B      B\n");
-    disp_color_str("            B     B\n");
-    disp_color_str("            BBBBBB\n");
-    disp_color_str("            B     B\n");
-    disp_color_str("            B      B\n");
-    disp_color_str("            B      B\n");
-    disp_color_str("            B     B\n");
-    disp_color_str("            BBBBBB\n");
-    milli_delay(1);
-    clearScreen();
-    disp_color_str("            BBBBBB        Y         Y\n");
-    disp_color_str("            B     B        Y       Y\n");
-    disp_color_str("            B      B        Y     Y\n");
-    disp_color_str("            B      B         Y   Y\n");
-    disp_color_str("            B     B           Y Y\n");
-    disp_color_str("            BBBBBB             Y\n");
-    disp_color_str("            B     B            Y\n");
-    disp_color_str("            B      B           Y\n");
-    disp_color_str("            B      B           Y\n");
-    disp_color_str("            B     B            Y\n");
-    disp_color_str("            BBBBBB             Y\n");
-    milli_delay(1);
-    clearScreen();
-    disp_color_str("            BBBBBB        Y         Y      EEEEEEEE\n");
-    disp_color_str("            B     B        Y       Y       E\n");
-    disp_color_str("            B      B        Y     Y        E\n");
-    disp_color_str("            B      B         Y   Y         E\n");
-    disp_color_str("            B     B           Y Y          E\n");
-    disp_color_str("            BBBBBB             Y           EEEEEEEE\n");
-    disp_color_str("            B     B            Y           E\n");
-    disp_color_str("            B      B           Y           E\n");
-    disp_color_str("            B      B           Y           E\n");
-    disp_color_str("            B     B            Y           E\n");
-    disp_color_str("            BBBBBB             Y           EEEEEEEE\n");
-    milli_delay(1);
