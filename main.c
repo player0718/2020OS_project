@@ -729,7 +729,7 @@ void clearScreen()
 
 void shutdown()
 {
-    clearScrean();
+    clearScreen();
     disp_str("\n\n\n\n\n");
     disp_str("            BBBBBB\n");
     disp_str("            B     B\n");
@@ -743,7 +743,7 @@ void shutdown()
     disp_str("            B     B\n");
     disp_str("            BBBBBB\n");
     milli_delay(1);
-    clearScrean();
+    clearScreen();
     disp_str("            BBBBBB        Y         Y\n");
     disp_str("            B     B        Y       Y\n");
     disp_str("            B      B        Y     Y\n");
@@ -756,7 +756,7 @@ void shutdown()
     disp_str("            B     B            Y\n");
     disp_str("            BBBBBB             Y\n");
     milli_delay(1);
-    clearScrean();
+    clearScreen();
     disp_str("            BBBBBB        Y         Y      EEEEEEEE\n");
     disp_str("            B     B        Y       Y       E\n");
     disp_str("            B      B        Y     Y        E\n");
