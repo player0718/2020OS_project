@@ -364,7 +364,7 @@ void shell(char *tty_name) {
 		else if (strcmp(cmd, "snake") == 0) {
 			snakeGame();
 		}
-		else if(strcmp(cmd,"shutdown"==0)){
+		else if(strcmp(cmd,"shutdown")==0){
 			shutdown();
 		}
 		else
@@ -693,7 +693,6 @@ void calculator()
     printf("This is a calculator application.");
     while(1)
     {
-        tty_dev_read(calculatorTty);
         printf("Please enter an equation: \n");
         openStartScanf(calculatorTty);
         while(calculatorTty->startScanf);
