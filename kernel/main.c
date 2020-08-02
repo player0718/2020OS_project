@@ -17,6 +17,7 @@
 #include "proto.h"
 #include "minesweeper.h"
 #include "snake.h"
+#include "bmp.h"
 
 
 
@@ -25,6 +26,7 @@
  *======================================================================*/
 PUBLIC int kernel_main() {
 	disp_str("-----\"kernel_main\" begins-----\n");
+	init_palette();
 	struct task* p_task;
 	struct proc* p_proc = proc_table;
 	char* p_task_stack = task_stack + STACK_SIZE_TOTAL;
@@ -164,7 +166,8 @@ void shell(char *tty_name) {
 	assert(fd_stdin == 0);
 	int fd_stdout = open(tty_name, O_RDWR);
 	assert(fd_stdout == 1);
-	animation();  // the start animation
+	//animation();  // the start animation
+	sl();
 	char current_dirr[512] = "/";
 	char current_login[512];
 	//login

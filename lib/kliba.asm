@@ -16,6 +16,10 @@ extern	disp_pos
 ; 导出函数
 global	disp_str
 global	disp_color_str
+global  io_out8
+global  io_cli
+global  io_load_eflags
+global  io_store_eflags
 global	out_byte
 global	in_byte
 global	enable_irq
@@ -25,7 +29,46 @@ global	disable_int
 global	port_read
 global	port_write
 global	glitter
+global mydraw
 
+
+;========================================
+;   void io_out8(int port, int data)
+;========================================
+io_out8:
+	mov edx, [esp+4]  ;port
+	mov al, [esp+8]  ;data
+	out dx, al
+	ret
+
+io_load_eflags:	; int io_load_eflags(void);
+	pushfd		; PUSH EFLAGS
+	pop eax
+	ret
+
+io_store_eflags:	; void io_store_eflags(int eflags);
+	mov		eax,[esp+4]
+	push	eax
+	popfd		; POP EFLAGS
+	ret
+
+io_cli:	; void io_cli(void);
+	cli
+	ret
+	
+;========================================
+;   void mydraw()
+;========================================
+mydraw:
+	push              es
+  	push              fs 
+	;mov  ax , 0x4F02       ;;设置中断功能号，表示使用0x4F02号功能
+    ;mov  bx , 0x4111        ;;设置显示模式号，表示使用0x111显示模式
+    ;int  0x10              ;;调用BIOS的0x10号中断，设置显卡功能
+	pop               es
+	pop               fs
+  	ret
+	
 
 
 ; ========================================================================

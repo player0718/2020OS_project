@@ -6,17 +6,23 @@
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
  
 /* kliba.asm */
-PUBLIC void	out_byte(u16 port, u8 value);
-PUBLIC u8	in_byte(u16 port);
-PUBLIC void	disp_str(char * info);
-PUBLIC void	disp_color_str(char * info, int color);
-PUBLIC void	disable_irq(int irq);
-PUBLIC void	enable_irq(int irq);
-PUBLIC void	disable_int();
-PUBLIC void	enable_int();
-PUBLIC void	port_read(u16 port, void* buf, int n);
-PUBLIC void	port_write(u16 port, void* buf, int n);
-PUBLIC void	glitter(int row, int col);
+PUBLIC void io_cli(void);
+PUBLIC void io_out8(int port, int data);
+PUBLIC int  io_load_eflags(void);
+PUBLIC void io_store_eflags(int eflags);
+PUBLIC void mydraw();
+PUBLIC void io_out8(int port, int data);
+PUBLIC void out_byte(u16 port, u8 value);//
+PUBLIC u8   in_byte(u16 port);//
+PUBLIC void disp_str(char * info);//
+PUBLIC void disp_color_str(char * info, int color);//
+PUBLIC void disable_irq(int irq);//
+PUBLIC void enable_irq(int irq);//
+PUBLIC void disable_int();//
+PUBLIC void enable_int();//
+PUBLIC void port_read(u16 port, void* buf, int n);//
+PUBLIC void port_write(u16 port, void* buf, int n);//
+PUBLIC void glitter(int row, int col);//
 
 /* string.asm */
 PUBLIC char*	strcpy(char* dst, const char* src);
