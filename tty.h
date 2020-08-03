@@ -10,7 +10,7 @@
 
 
 #define TTY_IN_BYTES		256	/* tty input queue size */
-#define TTY_OUT_BUF_LEN	2	/* tty output buffer size */
+#define TTY_OUT_BUF_LEN		2	/* tty output buffer size */
 
 struct s_tty;
 struct s_console;
@@ -22,16 +22,18 @@ typedef struct s_tty
 	u32*	ibuf_head;		/* the next free slot */
 	u32*	ibuf_tail;		/* the val to be processed by TTY */
 	int	ibuf_cnt;		/* how many */
-	char	tmpStr[TTY_IN_BYTES];	/*临时字符串*/
-	int	tmpLen;
-	char	str[TTY_IN_BYTES];	/*字符串*/
-	int	len;
+	
+	char buffer[TTY_IN_BYTES];
+    	int buf_len;
+    	char str[TTY_IN_BYTES + 1];
+    	int str_len;
+    	boolean b_scanf;
 	int	tty_caller;
 	int	tty_procnr;
 	void*	tty_req_buf;
 	int	tty_left_cnt;
 	int	tty_trans_cnt;
-	int	startScanf;
+
 	struct s_console *	console;
 }TTY;
 

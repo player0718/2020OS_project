@@ -1,6 +1,6 @@
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-				main.c
+							main.c
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 #include "type.h"
@@ -18,8 +18,10 @@
 #include "minesweeper.h"
 #include "snake.h"
 
+
+
 /*======================================================================*
-				kernel_main
+							kernel_main
  *======================================================================*/
 PUBLIC int kernel_main() {
 	disp_str("-----\"kernel_main\" begins-----\n");
@@ -139,8 +141,8 @@ PUBLIC void addTwoString(char *to_str, char *from_str1, char *from_str2) {
 	to_str[j] = 0;
 }
 
-char users[1][128] = { "root"};
-char passwords[1][128] = { "root"};
+char users[2][128] = { "root","shen"};
+char passwords[2][128] = { "root","yujiao"};
 
 //包含进程的操作 文件 启动游戏
 void shell(char *tty_name) {
@@ -204,7 +206,7 @@ void shell(char *tty_name) {
 		char old_cmd[512];
 		strcpy(old_cmd, cmd);
 		int cnt = 0, flag = 0;
-		for (cnt = 0; cnt < 1; cnt++) {
+		for (cnt = 0; cnt < 2; cnt++) {
 			if (strcmp(old_cmd, users[cnt]) == 0) {
 				printf("password: ");
 				clearArr(rdbuf, 512);
@@ -355,18 +357,22 @@ void shell(char *tty_name) {
 			proc_table[6].priority = proc_table[6].priority * 2;
 			ProcessManage();
 		}
-		else if(strcmp(cmd,"calculator")==0){
-			calculator();
-		}	
+
+	
 		else if (strcmp(cmd, "minesweeper") == 0) {
 			game(fd_stdin);
 		}
 		else if (strcmp(cmd, "snake") == 0) {
 			snakeGame();
 		}
-		else if(strcmp(cmd,"shutdown")==0){
-			shutdown();
+		else if (strcmp(cmd,"shutdown")==0) {
+			displayGoodBye();
+        		while(1);
 		}
+		else if (strcmp(cmd,"calculator")==0) {
+			Calculator();
+		}
+		
 		else
 			printf("Invalid Input!\n");
 	}
@@ -396,7 +402,7 @@ void TestB() {
  *======================================================================*/
  //C process
 void TestC() {
-	shell("/dev_tty2");
+	//shell("/dev_tty2");
 	assert(0);
 }
 
@@ -458,23 +464,21 @@ void clear() {
 
 
 
-//菜单
-void menu()     
-{
+
+void menu() {
 	printf("=============================================================================\n");
-	printf("                         Select Your Operation\n");	
+	printf("                             Select Your Operation                           \n");
 	printf("=============================================================================\n");
-	printf("    clear                           : clear the screen\n");
-	printf("    ls                              : list files in current directory\n");
-	printf("    shutdown                        : shut down the systom\n");
-	printf("    minesweeper                     : start the minesweeper game\n");
-	printf("    snake                           : start the snake game\n");
-	printf("    process                         : display all process-info and manage\n");
-	printf("    calculator                      : start the calculator\n");
+	printf("    clear                         : clear the screen                         \n");
+	printf("    ls                            : list files in current directory          \n");
+	printf("    minesweeper                   : start the minesweeper game               \n");
+	printf("    snake                         : start the snake game                     \n");
+	printf("    calculator                    : start the calculator application              \n");
+	printf("    process                       : display all process-info and manage      \n");
+	printf("    shutdown                      : shut down the systom\n");
 	printf("=============================================================================\n");
 }
 
-//进程管理
 void ProcessManage()
 {
 	int i;
@@ -492,10 +496,168 @@ void ProcessManage()
 	printf("=                 up     [pid]  improve the process priority                =\n");
 	printf("=============================================================================\n");
 }
+/*             Calculator           */
 
+stack calStack;
+char calStr[STACK_DEFAULT_SIZE];
+int p_str;
+
+boolean isdigit(ch){
+    return ch<='9' && ch >='0';
+}
+
+int isp(char ch){
+    if(ch == '+')
+    	return 1;
+    if(ch == '-')
+    	return 2;
+    if(ch == '*')
+    	return 3;
+    if(ch == '/')
+    	return 4;
+    if(ch == '('|| ch == ')')
+    	return 0;
+    if(ch == '#')
+    	return -1;
+    
+}
+
+void push(stack *sk, char ch){
+    sk->s[sk->top++]=ch;
+    assert(sk->top<STACK_DEFAULT_SIZE);
+}
+
+char top(stack *sk){
+    assert(top!=0);
+    return sk->s[sk->top-1];
+}
+
+char pop(stack *sk){
+    assert(top!=0);
+    return sk->s[--sk->top];
+}
+
+void init_stack(stack *sk){
+    sk->top = 0;
+}
+
+void show_stack(){
+    int i;
+    for(i = 0 ; i < calStack.top; ++i){
+        printf("%c", calStack.s[i]);
+    }
+    printf("\n");
+}
+
+char *postfix(char *str){
+    init_stack(&calStack);
+    char *p = str;
+    char *q = calStr;
+    push(&calStack, '#');
+    while(calStack.top!=0&&*p!='#'){
+        if(isdigit(*p)){
+            *q++=*p++;
+        }
+        else{
+            char op = top(&calStack);
+            if(isp(op)<isp(*p))
+                push(&calStack, *p++);
+            else if(isp(op) > isp(*p) && *p!='('){
+                *q++ = pop(&calStack);
+                
+            }else{
+                char op = top(&calStack);
+                if(op == '(')p++;
+                else *q++=pop(&calStack);
+            }
+        }
+    }
+    while(calStack.top!=0){
+        // printf("%c\n", top(&calStack));
+        *q++=pop(&calStack);
+    }
+    *q = '\0';
+    return calStr;
+}
+
+void do_operator(char op){
+    int right = pop(&calStack);
+    int left = pop(&calStack);
+    // printf("%d %d\n", left, right);
+    int value;
+    switch(op){
+        case '+':
+            value = left + right;
+            push(&calStack, value);
+            break;
+        case '-':
+            value = left - right;
+            push(&calStack, value);
+            break;
+        case '*':
+            value = left * right;
+            push(&calStack, value);
+            break;
+        case '/':
+            if(right == 0){
+                printf("divide by 0!\n");
+            }
+            else{
+                value = left / right;
+                push(&calStack, value);
+            }
+            break;
+    }
+}
+
+void calculate(char *str){
+    char *s = postfix(str);
+    // printf("%s\n", s);
+    // while(1);
+    p_str = 0;
+    init_stack(&calStack);
+    char *p = s;
+    while(*p!='#'){
+        switch(*p){
+            case '+':
+            case '-':
+            case '*':
+            case '/':
+                do_operator(*p++);
+                break;
+            default:
+                push(&calStack, (*p-'0'));
+                p++;
+                // printf("stack top: %d\n", top(&calStack));
+        }
+    }
+    printf("%d\n", top(&calStack));
+}
+
+void Calculator(){
+	
+	char rdbuf[512];
+	
+	int fd_stdin = 0;
+	
+	printf("This is a Calculator application\n");
+	printf("The expression must end with #\n");
+	
+	
+	while(1){
+        	clearArr(rdbuf, 512);
+        	
+        	printf("> ");
+        	int r = read(fd_stdin, rdbuf, 512);
+		if (strcmp(rdbuf, "") == 0)
+			continue;
+		
+        	calculate(rdbuf);
+	}
+}
 
 /*======================================================================*
-					welcome
+							welcome
  *======================================================================*/
 void animation() {
 	clear();
@@ -514,204 +676,6 @@ void animation() {
 	milli_delay(20000);
 	clear();
 }
-
-/*======================================================================*
-				calculator
-*=======================================================================*/
-TTY* calculatorTty=tty_table+2;
-#define length 100
-
-char token;
-int pos;
-char str[length];
-double exp();
-double term();
-double factor();
-
-void match(char expectedToken);
-void error();
-
-int isdigit(char ch)
-{
-    if(ch>='0' && ch<='9')
-        return 1;
-    return 0;
-}
-
-char getChar(char* str)
-{
-    if(pos>=length)return '\0';
-    return str[pos++];
-}
-
-void getString(char* str)
-{
-    int i;
-    char temp;
-    for(i=0;i<calculatorTty->len && calculatorTty->str[i]==' ';i++)
-    while(i<length &&i<calculatorTty->len)
-    {
-        temp=calculatorTty->str[i];
-        if(temp == '\n')break;
-        if(temp != ' ' && temp != '\t')
-            str[i++]=temp;
-        else continue;
-    }
-    str[i]='\0';
-}
-
-void error()
-{
-    printf("Error!\n");
-}
-
-double readNum(char bgn)
-{
-    double num = bgn - '0';
-    int deci_num = 0;
-    bgn = getChar(str);
-    if(!isdigit(bgn)&&bgn!='.')
-    {
-        pos--;
-        return num;
-    }
-    while(isdigit(bgn) || bgn=='.')
-    {
-        if(bgn == '.')
-            deci_num++;
-        else
-            num = num*10 +(double)(bgn - '0');
-        bgn = getChar(str);
-    }
-    while(deci_num)
-    {
-        num /= 10;
-        deci_num--;
-    }
-    pos--;
-    return num;
-}
-
-void match(char expectedToken)
-{
-    if(expectedToken == token)
-        token = getChar(str);
-    else
-        error();
-}
-
-double exp()
-{
-    double temp = term();
-    while(token == '+' || token == '-')
-        switch(token)
-        {
-            case '+': match('+');
-                      temp +=term();
-                      break;
-            case '-': match('-');
-                      temp-=term();
-                      break;
-        }
-    return temp;
-}
-
-double factor()
-{
-    double temp;
-    if(token == '(')
-    {
-        match('(');
-        temp = exp();
-        match(')');
-    }
-    else if(isdigit(token))
-    {
-        temp = readNum(token);
-        token = getChar(str);
-    }
-    else
-        error();
-    return temp;
-}
-
-double term()
-{
-    double temp = factor();
-    while(token =='*' || token == '/')
-        switch(token)
-        {
-            case '*': match('*');
-                      temp *= factor();
-                      break;
-            case '/': match('/');
-                      temp /=factor();
-                      break;
-        }
-    return temp;
-}
-
-void printNum(double d)
-{
-    if(d<0)
-    {
-        d=-d;
-        printf("-");
-    }
-    int m = d;
-    int digit = m;
-    d-=m;
-    int precision = 3;
-    char num[precision+1];
-    num[precision] = '\0';
-    int i = 0;
-    while(precision--)
-    {
-        d*=10;
-        m = d;
-        num[i++] = m+'0';
-        d-=m;
-    }
-    int flag = 0;
-    if(d*10>5)
-        flag = 1;
-    while(--i && flag)
-    {
-        if(num[i]=='9') 
-            num[i] = '0';
-        else
-        {
-            num[i]++;
-            flag = 0;
-        }
-    }
-    printf("%d.%s\n",digit,num);
-}
-
-void calculator()
-{
-    printf("This is a calculator application.");
-    while(1)
-    {
-        printf("Please enter an equation: \n");
-        openStartScanf(calculatorTty);
-        while(calculatorTty->startScanf);
-        getString(str);
-        pos=0;
-        token = getChar(str);
-        if(token == 'q')
-            break;
-        double result = exp();
-        if(token == '\0')
-        {
-            printNum(result);
-        }
-        else
-            error();
-    }
-    printf("An equation has been done.");
-}
-
 /*========================================================================*
 				shutdown
 *========================================================================*/
@@ -726,57 +690,20 @@ void clearScreen()
     disp_pos=0;
 }
 
-void shutdown()
+void displayGoodBye()
 {
+
     clearScreen();
     disp_str("\n\n\n\n\n");
-    disp_str("            BBBBBB\n");
-    disp_str("            B     B\n");
-    disp_str("            B      B\n");
-    disp_str("            B      B\n");
-    disp_str("            B     B\n");
-    disp_str("            BBBBBB\n");
-    disp_str("            B     B\n");
-    disp_str("            B      B\n");
-    disp_str("            B      B\n");
-    disp_str("            B     B\n");
-    disp_str("            BBBBBB\n");
-    milli_delay(1);
-    clearScreen();
-    disp_str("            BBBBBB        Y         Y\n");
-    disp_str("            B     B        Y       Y\n");
-    disp_str("            B      B        Y     Y\n");
-    disp_str("            B      B         Y   Y\n");
-    disp_str("            B     B           Y Y\n");
-    disp_str("            BBBBBB             Y\n");
-    disp_str("            B     B            Y\n");
-    disp_str("            B      B           Y\n");
-    disp_str("            B      B           Y\n");
-    disp_str("            B     B            Y\n");
-    disp_str("            BBBBBB             Y\n");
-    milli_delay(1);
-    clearScreen();
-    disp_str("            BBBBBB        Y         Y      EEEEEEEE\n");
-    disp_str("            B     B        Y       Y       E\n");
-    disp_str("            B      B        Y     Y        E\n");
-    disp_str("            B      B         Y   Y         E\n");
-    disp_str("            B     B           Y Y          E\n");
-    disp_str("            BBBBBB             Y           EEEEEEEE\n");
-    disp_str("            B     B            Y           E\n");
-    disp_str("            B      B           Y           E\n");
-    disp_str("            B      B           Y           E\n");
-    disp_str("            B     B            Y           E\n");
-    disp_str("            BBBBBB             Y           EEEEEEEE\n");
-    milli_delay(1);
+    disp_color_str("             #####                             ######               \n",0x1);     
+    disp_color_str("            #     #  ####   ####  #####        #     # #   # ###### \n",0x1); 
+    disp_color_str("            #       #    # #    # #    #       #     #  # #  #      \n",0x2); 
+    disp_color_str("            #  #### #    # #    # #    #       ######    #   #####  \n",0x2); 
+    disp_color_str("            #     # #    # #    # #    #       #     #   #   #      \n",0x3); 
+    disp_color_str("            #     # #    # #    # #    #       #     #   #   #      \n",0x3); 
+    disp_color_str("             #####   ####   ####  #####        ######    #   ###### \n",0x3);
+    disp_str("\n\n\n");     
+    disp_color_str("         ------------------------- Made BY ---------------------------\n\n",0xB);  
+    disp_color_str("              ------------------ Dai Beijia ---------------\n\n",0xF);  
+    disp_color_str("         -------------------------Goodbye-----------------------------\n\n",0xD);
 }
-
-
-
-
-
-
-
-
-
-
-

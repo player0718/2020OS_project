@@ -60,9 +60,7 @@ PRIVATE void    tty_dev_write   (TTY* tty);
 PRIVATE void    tty_do_read (TTY* tty, MESSAGE* msg);
 PRIVATE void    tty_do_write    (TTY* tty, MESSAGE* msg);
 PRIVATE void    put_key     (TTY* tty, u32 key);
-PRIVATE void	clearTempStr(TTY* tty);
-PRIVATE void	putToTemp(TTY* tty,u32 key);
-PRIVATE void	putToStr(TTY* tty);
+
 
 /*****************************************************************************
  *                                task_tty
@@ -160,35 +158,32 @@ PUBLIC void in_process(TTY* tty, u32 key)
     int raw_code2 = key & MASK_RAW;
    // assert(raw_code2!=ENTER);
     if (!(key & FLAG_EXT)) {
-    	if(tty->startScanf==0) return;
         // assert(0!=0);
         put_key(tty, key);
-        putToTemp(tty,key);
+        if(tty->b_scanf)
+        	put_buf(tty, key);
     }
     else {
         int raw_code = key & MASK_RAW;
         switch(raw_code) {
         case ENTER:
             put_key(tty, '\n');
-            putToStr(tty);
+            put_str(tty);
             break;
         case BACKSPACE:
-            if(tty->tmpLen)
-            {
-                put_key(tty, '\b');
-                tty->tmpLen--;
-            }
+            put_key(tty, '\b');
+            tty->buf_len--;
             break;
         case UP:
             if ((key & FLAG_SHIFT_L) ||
                 (key & FLAG_SHIFT_R)) { /* Shift + Up */
-                scroll_screen(tty->console, SCR_UP);
+                scroll_screen(tty->console, SCR_DN);
             }
             break;
         case DOWN:
             if ((key & FLAG_SHIFT_L) ||
                 (key & FLAG_SHIFT_R)) { /* Shift + Down */
-                scroll_screen(tty->console, SCR_DN);
+                scroll_screen(tty->console, SCR_UP);
             }
             break;
         case F1:
@@ -214,38 +209,7 @@ PUBLIC void in_process(TTY* tty, u32 key)
     }
 }
 
-/*新增内容*/
-PRIVATE void clearTemp(TTY* tty)
-{
-	tty->tmpLen=0;
-}
 
-PRIVATE void putToTemp(TTY* tty,u32 key)
-{
-	tty->tmpStr[tty->tmpLen]=key;
-	tty->tmpLen++;
-}
-
-PRIVATE void putToStr(TTY* tty)
-{
-	int i;
-	for(i=0;i<tty->tmpLen;i++)
-	{
-		tty->str[i]=tty->tmpStr[i];
-	}
-	tty->str[i]='\0';
-	tty->len=tty->tmpLen;
-	closeStartScanf(tty);
-}
-PUBLIC void tty_write(TTY* tty,char* buf,int len)
-{
-	char* p=buf;
-	int i=len;
-	while(i){
-		out_char(tty->console,*p++);
-		i--;
-	}
-}
 /*****************************************************************************
  *                                put_key
  *****************************************************************************/
@@ -266,6 +230,30 @@ PRIVATE void put_key(TTY* tty, u32 key)
             tty->ibuf_head = tty->ibuf;
         tty->ibuf_cnt++;
     }
+}
+void put_buf(TTY* p_tty, u32 key){
+    p_tty->buffer[p_tty->buf_len++] = key;
+}
+
+void put_str(TTY *p_tty){
+    int i;
+    for(i = 0; i<p_tty->buf_len; ++i){
+        p_tty->str[i] = p_tty->buffer[i];
+    }
+    p_tty->str[i] = '\0';
+    p_tty->str_len = p_tty->buf_len;
+    scanf_off(p_tty);
+    // wake(p_tty->proc_waiting);
+}
+
+PUBLIC void scanf_on(TTY *p_tty){
+    p_tty->b_scanf = 1;
+    p_tty->buf_len = 0;
+}
+
+PUBLIC void scanf_off(TTY *p_tty){
+    p_tty->b_scanf = 0;
+    p_tty->buf_len = 0;
 }
 
 
@@ -493,22 +481,6 @@ PUBLIC int sys_printx(int _unused1, int _unused2, char* s, struct proc* p_proc)
     return 0;
 }
 
-/*sys_write*/
-PUBLIC int sys_write(char* buf,int len,struct proc* p_proc)
-{
-	tty_write(&tty_table[p_proc->p_flags],buf,len);
-	return 0;
-}
-PUBLIC void openStartScanf(TTY* tty)
-{
-	tty->startScanf=1;
-	clearTemp(tty);
-}
-PUBLIC void closeStartScanf(TTY* tty)
-{
-	tty->startScanf=0;
-	clearTemp(tty);
-}
 /*****************************************************************************
  *                                dump_tty_buf
  *****************************************************************************/
