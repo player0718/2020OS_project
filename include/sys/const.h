@@ -11,7 +11,7 @@
 /* max() & min() */
 #define	max(a,b)	((a) > (b) ? (a) : (b))
 #define	min(a,b)	((a) < (b) ? (a) : (b))
-
+#define boolean int
 /* Color */
 /*
  * e.g. MAKE_COLOR(BLUE, RED)
