@@ -101,3 +101,9 @@ struct task {
                 STACK_SIZE_TESTB + \
                 STACK_SIZE_TESTC)
 
+#define STACK_DEFAULT_SIZE 128
+typedef struct stack
+{
+	char s[STACK_DEFAULT_SIZE];
+	int top;
+}stack;
