@@ -365,7 +365,13 @@ void shell(char *tty_name) {
 		else if (strcmp(cmd, "snake") == 0) {
 			snakeGame();
 		}
-	
+		else if (strcmp(cmd,"shutdown")==0) {
+			displayGoodBye();
+        		while(1);
+		}
+		else if (strcmp(cmd,"calculator")==0) {
+			Calculator();
+		}
 		
 		else
 			printf("Invalid Input!\n");
@@ -468,6 +474,8 @@ void menu() {
 	printf("    minesweeper                   : start the minesweeper game               \n");
 	printf("    snake                         : start the snake game                     \n");
 	printf("    process                       : display all process-info and manage      \n");
+	printf("    shutdown                      : shut down the systom                     \n");
+	printf("    calculator                    : start the calculator application         \n");
 	printf("=============================================================================\n");
 }
 
@@ -510,3 +518,212 @@ void animation() {
 	milli_delay(20000);
 	clear();
 }
+/*========================================================================*
+				shutdown
+*========================================================================*/
+void displayGoodBye()
+{
+
+    clear();
+    printf("\n\n\n\n\n");
+    printf("            BBBBBB					\n");
+    printf("            B     B					\n");
+    printf("            B      B					\n");
+    printf("            B      B					\n");
+    printf("            B     B					\n");
+    printf("            BBBBBB					\n");
+    printf("            B     B					\n");
+    printf("            B      B					\n");
+    printf("            B      B					\n");
+    printf("            B     B					\n");
+    printf("            BBBBBB					\n");
+    milli_delay(2000);
+    clear();
+    printf("\n\n\n\n\n");
+    printf("            BBBBBB        Y         Y			\n");
+    printf("            B     B        Y       Y			\n");
+    printf("            B      B        Y     Y			\n");
+    printf("            B      B         Y   Y			\n");
+    printf("            B     B           Y Y				\n");
+    printf("            BBBBBB             Y				\n");
+    printf("            B     B            Y				\n");
+    printf("            B      B           Y				\n");
+    printf("            B      B           Y				\n");
+    printf("            B     B            Y				\n");
+    printf("            BBBBBB             Y				\n");
+    milli_delay(2000);
+    clear();
+    printf("\n\n\n\n\n");
+    printf("            BBBBBB        Y         Y      EEEEEEEE	\n");
+    printf("            B     B        Y       Y       E		\n");
+    printf("            B      B        Y     Y        E		\n");
+    printf("            B      B         Y   Y         E		\n");
+    printf("            B     B           Y Y          E		\n");
+    printf("            BBBBBB             Y           EEEEEEEE	\n");
+    printf("            B     B            Y           E		\n");
+    printf("            B      B           Y           E		\n");
+    printf("            B      B           Y           E		\n");
+    printf("            B     B            Y           E		\n");
+    printf("            BBBBBB             Y           EEEEEEEE	\n");
+    printf("----------------------------Goodbye-------------------------");
+}
+/*             Calculator           */
+
+stack calStack;
+char calStr[STACK_DEFAULT_SIZE];
+int p_str;
+
+boolean isdigit(ch){
+    return ch<='9' && ch >='0';
+}
+
+int isp(char ch){
+    if(ch == '+')
+    	return 1;
+    if(ch == '-')
+    	return 2;
+    if(ch == '*')
+    	return 3;
+    if(ch == '/')
+    	return 4;
+    if(ch == '('|| ch == ')')
+    	return 0;
+    if(ch == '#')
+    	return -1;
+    
+}
+
+void push(stack *sk, char ch){
+    sk->s[sk->top++]=ch;
+    assert(sk->top<STACK_DEFAULT_SIZE);
+}
+
+char top(stack *sk){
+    assert(top!=0);
+    return sk->s[sk->top-1];
+}
+
+char pop(stack *sk){
+    assert(top!=0);
+    return sk->s[--sk->top];
+}
+
+void init_stack(stack *sk){
+    sk->top = 0;
+}
+
+void show_stack(){
+    int i;
+    for(i = 0 ; i < calStack.top; ++i){
+        printf("%c", calStack.s[i]);
+    }
+    printf("\n");
+}
+
+char *postfix(char *str){
+    init_stack(&calStack);
+    char *p = str;
+    char *q = calStr;
+    push(&calStack, '#');
+    while(calStack.top!=0&&*p!='#'){
+        if(isdigit(*p)){
+            *q++=*p++;
+        }
+        else{
+            char op = top(&calStack);
+            if(isp(op)<isp(*p))
+                push(&calStack, *p++);
+            else if(isp(op) > isp(*p) && *p!='('){
+                *q++ = pop(&calStack);
+                
+            }else{
+                char op = top(&calStack);
+                if(op == '(')p++;
+                else *q++=pop(&calStack);
+            }
+        }
+    }
+    while(calStack.top!=0){
+        // printf("%c\n", top(&calStack));
+        *q++=pop(&calStack);
+    }
+    *q = '\0';
+    return calStr;
+}
+
+void do_operator(char op){
+    int right = pop(&calStack);
+    int left = pop(&calStack);
+    // printf("%d %d\n", left, right);
+    int value;
+    switch(op){
+        case '+':
+            value = left + right;
+            push(&calStack, value);
+            break;
+        case '-':
+            value = left - right;
+            push(&calStack, value);
+            break;
+        case '*':
+            value = left * right;
+            push(&calStack, value);
+            break;
+        case '/':
+            if(right == 0){
+                printf("divide by 0!\n");
+            }
+            else{
+                value = left / right;
+                push(&calStack, value);
+            }
+            break;
+    }
+}
+
+void calculate(char *str){
+    char *s = postfix(str);
+    // printf("%s\n", s);
+    // while(1);
+    p_str = 0;
+    init_stack(&calStack);
+    char *p = s;
+    while(*p!='#'){
+        switch(*p){
+            case '+':
+            case '-':
+            case '*':
+            case '/':
+                do_operator(*p++);
+                break;
+            default:
+                push(&calStack, (*p-'0'));
+                p++;
+                // printf("stack top: %d\n", top(&calStack));
+        }
+    }
+    printf("%d\n", top(&calStack));
+}
+
+void Calculator(){
+	
+	char rdbuf[512];
+	
+	int fd_stdin = 0;
+	
+	printf("This is a Calculator application\n");
+	printf("The expression must end with #\n");
+	
+	
+	while(1){
+        	clearArr(rdbuf, 512);
+        	
+        	printf("> ");
+        	int r = read(fd_stdin, rdbuf, 512);
+		if (strcmp(rdbuf, "") == 0)
+			continue;
+		
+        	calculate(rdbuf);
+	}
+}
+
