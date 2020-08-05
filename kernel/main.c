@@ -17,33 +17,10 @@
 #include "proto.h"
 #include "minesweeper.h"
 #include "snake.h"
+#include"sokoban.h"
 
-EXTERN proc_node *h_ready[],*h_waiting;
-EXTERN proc_node proc_list[];
-EXTERN int index_free;
-EXTERN int k;
-//比对两个字符串
-int strcmp(char *str1,char *str2)
-{
-    int i;
-    for(i=0;i<strlen(str1);i++)
-    {
-        if(i==strlen(str2)) return 1;
-        if(str1[i]>str2[i]) return 1;
-        else if(str1[i]<str2[i]) return -1;
-    }
-    return 0;
-}
-//将大写字母变为小写
-void strlwr(char *str)
-{
-	int i;
-	for (i=0; i<strlen(str); i++)
-	{
-		if ('A'<=str[i] && str[i]<='Z')
-			str[i]=str[i]+'a'-'A';
-	}
-}
+
+
 /*======================================================================*
 							kernel_main
  *======================================================================*/
@@ -62,6 +39,7 @@ PUBLIC int kernel_main() {
 	char running_string[] = "running ";
 	char dead_string[] = "  dead  ";
 	char paused_string[] = " paused ";
+
 
 	// start the process
 	for (i = 0; i < NR_TASKS + NR_PROCS; i++) {
@@ -165,8 +143,8 @@ PUBLIC void addTwoString(char *to_str, char *from_str1, char *from_str2) {
 	to_str[j] = 0;
 }
 
-char users[1][128] = { "root"};
-char passwords[1][128] = { "root"};
+char users[2][128] = { "root","shen"};
+char passwords[2][128] = { "root","yujiao"};
 
 //包含进程的操作 文件 启动游戏
 void shell(char *tty_name) {
@@ -230,7 +208,7 @@ void shell(char *tty_name) {
 		char old_cmd[512];
 		strcpy(old_cmd, cmd);
 		int cnt = 0, flag = 0;
-		for (cnt = 0; cnt < 1; cnt++) {
+		for (cnt = 0; cnt < 2; cnt++) {
 			if (strcmp(old_cmd, users[cnt]) == 0) {
 				printf("password: ");
 				clearArr(rdbuf, 512);
@@ -389,7 +367,9 @@ void shell(char *tty_name) {
 		else if (strcmp(cmd, "snake") == 0) {
 			snakeGame();
 		}
-	
+		else if (strcmp(cmd, "sokoban") == 0) {
+			sokoban();
+		}
 		
 		else
 			printf("Invalid Input!\n");
@@ -491,9 +471,8 @@ void menu() {
 	printf("    ls                            : list files in current directory          \n");
 	printf("    minesweeper                   : start the minesweeper game               \n");
 	printf("    snake                         : start the snake game                     \n");
+	printf("    sokoban                       : start the sokoban game                   \n");
 	printf("    process                       : display all process-info and manage      \n");
-	printf("    shutdown                      : close the computer                       \n");
-	printf("    calculator                    : start a calculator application           \n");
 	printf("=============================================================================\n");
 }
 
@@ -536,313 +515,3 @@ void animation() {
 	milli_delay(20000);
 	clear();
 }
-/*======================================================================*
-				Terminal
-*=======================================================================*/
-
-char *status_str(int status)
-{
-    if(status == RUNNING)
-    {
-        return "RUNNING";
-    }
-    else if(status == READY)
-    {
-        return "READY";
-    }
-    else if(status == WANNING)
-    {
-        return "WANING";
-    }
-    return NULL;
-}
-//处理用户指令
-void dispatch_command(char *command)
-{
-    strlwr(command);
-    if(strcmp(command,"clear")==0)
-    {
-        clearScreen();
-        sys_clear(tty_table);
-    }
-    else if(strcmp(command,"calculator"==0))
-    {
-        calculator();
-    }
-    else if(strcmp(command,"shutdown")==0)
-    {
-        showdown();
-        while(1);
-    }
-    else
-    {
-        printf("Wrong command!\n");
-    }
-}
-
-PUBLIC void Terminal()
-{
-    tty_table->b_scanf=FALSE;
-    while(1){
-        printf("$ ");
-        scanf_on(tty_table);
-        while(tty_table->b_scanf);
-        dispatch_command(tty_table->str);
-    }
-}
-/*======================================================================*
-				calculator
-*=======================================================================*/
-TTY *calculatorTty=tty_table+2;
-#define length 100
-
-char token;
-int pos;
-char str[length];
-double exp();
-double term();
-double factor();
-
-void match(char expectedToken);
-void error();
-
-int isdigit(char ch)
-{
-    if(ch>='0' $$ ch<='9')
-        return 1;
-    return 0;
-}
-
-char getChar(char* str)
-{
-    if(pos>=length)return '\0';
-    return str[pos++];
-}
-
-void getString(char* str)
-{
-    int i;
-    char temp;
-    for(i=0;i<calculatorTty->len && calculatorTty->str[i]==' ';i++)
-    {
-	    while(i<length &&i<calculatorTty->len)
-	    {
-		    temp=calculatorTty->str[i];
-		    if(temp == '\n')break;
-		    if(temp != ' ' && temp != '\t')
-			    str[i++]=temp;
-		    else continue;
-	    }
-	    str[i]='\0';
-    }
-}
-
-void error()
-{
-    printf("Error!\n");
-}
-
-double readNum(char bgn)
-{
-    double num = bgn - '0';
-    int deci_num = 0;
-    bgn = getChar(str);
-    if(!isdigit(bgn)&&bgn!='.')
-    {
-        pos--;
-        return num;
-    }
-    while(isdigit(bgn) || bgn=='.')
-    {
-        if(bgn == '.')
-            deci_num++;
-        else
-            num = num*10 +(double)(bbgn - '0');
-        bgn = getChar(str);
-    }
-    while(deci_num)
-    {
-        num /= 10;
-        deci_num--;
-    }
-    pos--;
-    return num;
-}
-
-void match(char expectedToken)
-{
-    if(expectedToken == token)
-        token = getChar(str);
-    else
-        error();
-}
-
-double exp()
-{
-    double temp = term();
-    while(token == '+' || token == '-')
-        switch(token)
-        {
-            case '+': match('+');
-                      temp +=term();
-                      break;
-            case '-': match('-');
-                      temp-=term();
-                      break;
-        }
-    return temp;
-}
-
-double factor()
-{
-    double temp;
-    if(token == '(')
-    {
-        match('(');
-        temp = exp();
-        match(')');
-    }
-    else if(isdigit(token))
-    {
-        temp = readNum(token);
-        token = getChar(str);
-    }
-    else
-        error();
-    return temp;
-}
-
-double term()
-{
-    double temp = factor();
-    while(token =='*' || token == '/')
-        switch(token)
-        {
-            case '*': match('*');
-                      temp *= factor();
-                      break;
-            case '/': match('/');
-                      temp /=factor();
-                      break;
-        }
-    return temp;
-}
-
-void printNum(double d)
-{
-    if(d<0)
-    {
-        d=-d;
-        printf("-");
-    }
-    int m = d;
-    int digit = m;
-    d-=m;
-    int precision = 3;
-    char num[precision+1];
-    num[precision] = '\0';
-    int i = 0;
-    while(precision--)
-    {
-        d*=10;
-        m = d;
-        num[i++] = m+'0';
-        d-=m;
-    }
-    int flag = 0;
-    if(d*10>5)
-        flag = 1;
-    while(--i && flag)
-    {
-        if(num[i]=='9') 
-            num[i] = '0';
-        else
-        {
-            num[i]++;
-            flag = 0;
-        }
-    }
-    printf("%d.%s\n",digit,num);
-}
-
-void calculator()
-{
-    printf("This is a calculator application.")
-    while(1)
-    {
-        delectTty(caculatorTty);
-        printf("Please enter an equation: \n");
-        openStartScanf(caculatorTty);
-        while(calculatorTty->startScanf);
-        getString(str);
-        pos=0;
-        token = getChar(str);
-        if(token == 'q')
-            break;
-        double result = exp();
-        if(token == '\0')
-        {
-            printNum(result);
-        }
-        else
-            error();
-    }
-    printf("An equation has been done.")
-}
-
-/*========================================================================*
-				shutdown
-*========================================================================*/
-void clearScreen()
-{
-    int i;
-    disp_pos=0;
-    for(i=0;i<80*25;i++)
-    {
-        disp_str(" ");
-    }
-    disp_pos=0;
-}
-
-void shutdown()
-{
-    clearScreen();
-    disp_str("\n\n\n\n\n");
-    disp_color_str("            BBBBBB\n");
-    disp_color_str("            B     B\n");
-    disp_color_str("            B      B\n");
-    disp_color_str("            B      B\n");
-    disp_color_str("            B     B\n");
-    disp_color_str("            BBBBBB\n");
-    disp_color_str("            B     B\n");
-    disp_color_str("            B      B\n");
-    disp_color_str("            B      B\n");
-    disp_color_str("            B     B\n");
-    disp_color_str("            BBBBBB\n");
-    milli_delay(1);
-    clearScreen();
-    disp_color_str("            BBBBBB        Y         Y\n");
-    disp_color_str("            B     B        Y       Y\n");
-    disp_color_str("            B      B        Y     Y\n");
-    disp_color_str("            B      B         Y   Y\n");
-    disp_color_str("            B     B           Y Y\n");
-    disp_color_str("            BBBBBB             Y\n");
-    disp_color_str("            B     B            Y\n");
-    disp_color_str("            B      B           Y\n");
-    disp_color_str("            B      B           Y\n");
-    disp_color_str("            B     B            Y\n");
-    disp_color_str("            BBBBBB             Y\n");
-    milli_delay(1);
-    clearScreen();
-    disp_color_str("            BBBBBB        Y         Y      EEEEEEEE\n");
-    disp_color_str("            B     B        Y       Y       E\n");
-    disp_color_str("            B      B        Y     Y        E\n");
-    disp_color_str("            B      B         Y   Y         E\n");
-    disp_color_str("            B     B           Y Y          E\n");
-    disp_color_str("            BBBBBB             Y           EEEEEEEE\n");
-    disp_color_str("            B     B            Y           E\n");
-    disp_color_str("            B      B           Y           E\n");
-    disp_color_str("            B      B           Y           E\n");
-    disp_color_str("            B     B            Y           E\n");
-    disp_color_str("            BBBBBB             Y           EEEEEEEE\n");
-    milli_delay(1);

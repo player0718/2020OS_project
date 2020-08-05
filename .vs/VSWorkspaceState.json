@@ -1,12 +1,11 @@
 {
   "ExpandedNodes": [
     "",
-    "\\boot",
-    "\\boot\\include",
-    "\\fs",
+    "\\include",
+    "\\include\\sys",
     "\\kernel",
     "\\lib"
   ],
-  "SelectedNode": "\\kernel\\console.c",
+  "SelectedNode": "\\include\\sokoban.h",
   "PreviewInSolutionExplorer": false
 }
