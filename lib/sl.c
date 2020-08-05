@@ -12,6 +12,7 @@
 
 
 PUBLIC void sl(){
+clear();
 	int len = 80 * 25,n=0;
 	u8 *pch = (u8*)V_MEM_BASE;
 	while (--len >= 0) {
@@ -107,28 +108,29 @@ PUBLIC void sl(){
 };
 	
 
-	milli_delay(20000);
+	milli_delay(15000);
 	for(int i=5;i<20;i++){
 	for(int j=7;j<23;j++){
 	pch[2*(80*i+j)]=' ';
 	pch[2*(80*i+j)+1]=img1[i][j];
 	}
 	}
-	milli_delay(20000);
+	milli_delay(15000);
 	for(int i=5;i<20;i++){
 	for(int j=26;j<40;j++){
 	pch[2*(80*i+j)]=' ';
 	pch[2*(80*i+j)+1]=img2[i][j];
 	}
 	}
-	milli_delay(20000);
+	milli_delay(15000);
 	for(int i=10;i<20;i++){
 	for(int j=41;j<71;j++){
 	pch[2*(80*i+j)]=' ';
 	pch[2*(80*i+j)+1]=image3[i][j];
 	}
 	}
-	milli_delay(20000);
+	milli_delay(15000);
+	console_table[current_console].cursor=2000;
 	clear();
 }
 

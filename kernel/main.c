@@ -26,7 +26,6 @@
  *======================================================================*/
 PUBLIC int kernel_main() {
 	disp_str("-----\"kernel_main\" begins-----\n");
-	init_palette();
 	struct task* p_task;
 	struct proc* p_proc = proc_table;
 	char* p_task_stack = task_stack + STACK_SIZE_TOTAL;
@@ -168,6 +167,7 @@ void shell(char *tty_name) {
 	assert(fd_stdout == 1);
 	//animation();  // the start animation
 	sl();
+	clear();
 	char current_dirr[512] = "/";
 	char current_login[512];
 	//login
@@ -307,7 +307,31 @@ void shell(char *tty_name) {
 		else if (strcmp(cmd, "ls") == 0) {
 			ls(current_dirr);
 		}
-
+		//文件系统操作 tian 307-325
+		else if (strcmp(cmd, "nf") == 0) {
+			CreateFile(current_dirr, arg1);
+		}
+		else if (strcmp(cmd, "rm") == 0) {
+			DeleteFile(current_dirr,arg1);
+		}
+		else if (strcmp(cmd, "pfc") == 0) {
+			ReadFile(current_dirr, arg1);
+		}
+		else if (strcmp(cmd, "wf") == 0) {
+			WriteFile(current_dirr, arg1);
+		}
+		else if(strcmp(cmd,"saveimage")==0){
+		       saveimage(current_dirr,arg1);
+		}
+		else if(strcmp(cmd,"showimage")==0){
+		      showimage(current_dirr,arg1);
+		}
+		else if (strcmp(cmd, "mkdir")==0){
+			CreateDir(current_dirr,arg1);
+		}
+		else if (strcmp(cmd, "cd") == 0) {
+			GoDir(current_dirr, arg1);
+		}
 		else if (strcmp(rdbuf, "pause 4") == 0) {
 			memcpy(proc_table[4].run_state, paused_string, 8);
 			ProcessManage();
@@ -460,8 +484,9 @@ void clear() {
 
 
 
-
-
+/*======================================================================*
+						menu 478-483（新增）
+ *======================================================================*/
 void menu() {
 	printf("=============================================================================\n");
 	printf("                             Select Your Operation                           \n");
@@ -471,6 +496,14 @@ void menu() {
 	printf("    minesweeper                   : start the minesweeper game               \n");
 	printf("    snake                         : start the snake game                     \n");
 	printf("    process                       : display all process-info and manage      \n");
+	printf("    nf                            : create a new file                        \n");
+	printf("    saveimage                     : create an image file                     \n");
+	printf("    showimage                     : show an image file                       \n");
+	printf("    rm                            : delete a file                            \n");
+	printf("    pfc                           : print file content                       \n");
+	printf("    wf                            : write a file                             \n");
+	printf("    mkdir                         : create a new directory                   \n");
+	printf("    cd                            : change current directory                 \n");
 	printf("=============================================================================\n");
 }
 
@@ -491,7 +524,211 @@ void ProcessManage()
 	printf("=                 up     [pid]  improve the process priority                =\n");
 	printf("=============================================================================\n");
 }
+/*======================================================================*
+					文件系统操作   516-675
+ *======================================================================*/
+void CreateFile(char* path, char* file)//新建文件
+{
+	char absoPath[512];
+	addTwoString(absoPath, path, file);
 
+	int fd = open(absoPath, O_CREAT | O_RDWR);
+
+	if (fd == -1)
+	{
+		printf("Failed to create a new file with name %s\n", file);
+		return;
+	}
+
+	char buf[1] = { 0 };
+	write(fd, buf, 1);
+	printf("File created: %s (fd %d)\n", file, fd);
+	close(fd);
+}
+
+void DeleteFile(char* path, char* file)//删除文件
+{
+	char absoPath[512];
+	addTwoString(absoPath, path, file);
+	int m = unlink(absoPath);
+	if (m == 0)
+		printf("%s deleted!\n", file);
+	else
+		printf("Failed to delete %s!\n", file);
+}
+
+
+void ReadFile(char* path, char* file)//读文件
+{
+	char absoPath[512];
+	addTwoString(absoPath, path, file);
+	int fd = open(absoPath, O_RDWR);
+	if (fd == -1)
+	{
+		printf("Failed to open %s!\n", file);
+		return;
+	}
+
+	char buf[4096];
+	int n = read(fd, buf, 4096);
+	if (n == -1)  // 读取文件内容失败
+	{
+		printf("An error has occured in reading the file!\n");
+		close(fd);
+		return;
+	}
+
+	printf("%s\n", buf);
+	close(fd);
+}
+
+void WriteFile(char* path, char* file)//写文件
+{
+	char absoPath[512];
+	addTwoString(absoPath, path, file);
+	int fd = open(absoPath, O_RDWR);
+	if (fd == -1)
+	{
+		printf("Failed to open %s!\n", file);
+		return;
+	}
+
+	char tty_name[] = "/dev_tty0";
+	int fd_stdin = open(tty_name, O_RDWR);
+	if (fd_stdin == -1)
+	{
+		printf("An error has occured in writing the file!\n");
+		return;
+	}
+	char writeBuf[4096];  // 写缓冲区
+	int endPos = read(fd_stdin, writeBuf, 4096);
+	writeBuf[endPos] = 0;
+	write(fd, writeBuf, endPos + 1);  // 结束符也应写入
+	close(fd);
+}
+
+void CreateDir(char* path, char* file)//新建目录
+{
+	char absoPath[512];
+	addTwoString(absoPath, path, file);
+	int fd = open(absoPath, O_RDWR);
+
+	if (fd != -1)
+	{
+		printf("Failed to create a new directory with name %s\n", file);
+		return;
+	}
+	mkdir(absoPath);
+}
+
+void GoDir(char* path, char* file)//切换当前目录
+{
+	int flag = 0;  // 判断是进入下一级目录还是返回上一级目录
+	char newPath[512] = { 0 };
+	if (file[0] == '.' && file[1] == '.')  // cd ..返回上一级目录
+	{
+		flag = 1;
+		int pos_path = 0;
+		int pos_new = 0;
+		int i = 0;
+		char temp[128] = { 0 };  // 用于存放某一级目录的名称
+		while (path[pos_path] != 0)
+		{
+			if (path[pos_path] == '/')
+			{
+				pos_path++;
+				if (path[pos_path] == 0)  // 已到达结尾
+					break;
+				else
+				{
+					temp[i] = '/';
+					temp[i + 1] = 0;
+					i = 0;
+					while (temp[i] != 0)
+					{
+						newPath[pos_new] = temp[i];
+						temp[i] = 0;  
+						pos_new++;
+						i++;
+					}
+					i = 0;
+				}
+			}
+			else
+			{
+				temp[i] = path[pos_path];
+				i++;
+				pos_path++;
+			}
+		}
+	}
+	char absoPath[512];
+	char temp[512];
+	int pos = 0;
+	while (file[pos] != 0)
+	{
+		temp[pos] = file[pos];
+		pos++;
+	}
+	temp[pos] = '/';
+	temp[pos + 1] = 0;
+	if (flag == 1)  // 返回上一级目录
+	{
+		temp[0] = 0;
+		addTwoString(absoPath, newPath, temp);
+	}
+	else  // 进入下一级目录
+		addTwoString(absoPath, path, temp);
+	int fd = open(absoPath, O_RDWR);
+	if (fd == -1)
+		printf("%s is not a directory!\n", absoPath);
+	else
+		memcpy(path, absoPath, 512);
+}
+
+void saveimage(char* path, char* file)//
+{
+
+CreateFile(path,file);
+char absoPath[512];
+	addTwoString(absoPath, path, file);
+	int fd=open(absoPath,O_RDWR);
+	//write
+	
+	unsigned char buf[2003]={0};
+	for(int i=0;i<25;i++){
+	for(int j=0;j<80;j++){
+	buf[i*80+j]=bmp[i][j];
+	}
+	}
+	buf[2000]=0;
+	write(fd,buf,2000);
+	printf("File writed. fd:%d\n",fd);
+	
+	close(fd);
+	
+}
+
+
+void showimage(char* path,char* file){
+clear();
+char absoPath[512];
+	addTwoString(absoPath, path, file);
+	int fd=open(absoPath,O_RDWR);
+	unsigned char IMG[2000];
+	read(fd,IMG,2000);
+	
+	int len=0,n=0;
+	u8 *pch = (u8*)V_MEM_BASE;
+	while (len++ < 2000) {
+		pch[n++] = ' ';
+		pch[n++]= IMG[len];
+	}
+	milli_delay(30000);
+	console_table[current_console].cursor=2000;
+	clear();
+	close(fd);
+}
 
 /*======================================================================*
 							welcome

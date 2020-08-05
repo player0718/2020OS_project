@@ -75,16 +75,19 @@ struct super_block {
 
 //固定分区
 struct inode {
-    u32 i_mode;     /**< Accsess mode */
-    u32 i_size;     /**< File size */
-    u32 i_start_sect;   /**< The first sector of the data */
-    u32 i_nr_sects; /**< How many sectors the file occupies */
-    u8  _unused[16];    /**< Stuff for alignment */
+    u32	i_mode;		/**< Accsess mode */
+    u32	i_size;		/**< File size */
+    u32	i_start_sect;	/**< The first sector of the data */
+    u32	i_nr_sects;	/**< How many sectors the file occupies */
+    u8	_unused[16];	/**< Stuff for alignment */
+
+    u32 i_node_length;            /**< sect lenghth */
+    u32 i_sects_pos[20];         /**< sect pos array */
 
     /* the following items are only present in memory */
-    int i_dev;
-    int i_cnt;      /**< How many procs share this inode  */
-    int i_num;      /**< inode nr.  */
+    int	i_dev;
+    int	i_cnt;		/**< How many procs share this inode  */
+    int	i_num;		/**< inode nr.  */
 };
 
 /**
@@ -108,11 +111,9 @@ struct inode {
  * @brief  Directory Entry
  */
 struct dir_entry {
-    int   inode_nr;       /**< inode nr. */
-    char  name[MAX_FILENAME_LEN]; /**< Filename */
-    int   is_dir;
-    int   changed_time;
-    char  pass[16];
+	int	inode_nr;		/**< inode nr. */
+	char	name[MAX_FILENAME_LEN];	/**< Filename */
+	char type;
 };
 
 /**
@@ -128,9 +129,10 @@ struct dir_entry {
  * @brief  File Descriptor
  */
 struct file_desc {
-    int     fd_mode;    /**< R or W */
-    int     fd_pos;     /**< Current position for R/W. */
-    struct inode*   fd_inode;   /**< Ptr to the i-node */
+	int		fd_mode;	/**< R or W */
+	int		fd_pos;		/**< Current position for R/W. */
+    int     fd_cnt;     /**< How many procs share this desc */
+	struct inode*	fd_inode;	/**< Ptr to the i-node */
 };
 
 
